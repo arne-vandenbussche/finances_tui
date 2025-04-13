@@ -88,4 +88,6 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 *.log
+*.sqlite3
+*.db
 
