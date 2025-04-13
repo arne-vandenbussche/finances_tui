@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 
 class Transactie():
     def __init__(self, id: int = 0, datum: date = date.today(), 
@@ -19,5 +20,5 @@ class Transactie():
         self.actuele_rekeningstand = actuele_rekeningstand
         
     def __str__(self):
-        return f"Datum: {self.datum}. Beschrijving: {self.beschrijving}"
+        return f"Datum: {self.datum}. Bedrag: {self.bedrag}. Beschrijving: {self.beschrijving}"
         
