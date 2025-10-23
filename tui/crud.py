@@ -9,8 +9,7 @@ def toon_alle_transacties():
         print(transactie)
 
 def voeg_een_transactie_toe():
-      
-
+    print("We hebben deze functie nog niet uitgewerkt. Onze excuses.")
 
 def exporteer_de_transacties_naar_csv():
     print("Het exporteren van de transacties naar csv is niet niet uitgewerkt")
@@ -33,7 +32,7 @@ def menu():
             keuze = int(input("Geef het nummer van je keuze: "))
             print(f"Dit was je keuze: {keuze}")
             if keuze in (1, 2, 3, 4):
-                keuze_succesvol = True 
+                keuze_succesvol = True
                 print("Goede keuze")
             else:
                 print("Je moet een getal van 1 tot 4 ingeven.")
