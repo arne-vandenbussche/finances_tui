@@ -4,7 +4,10 @@ import services
 import sys
 
 def toon_alle_transacties():
+    transacties = []
     transacties = db.db_transacties.get_all_transactions()
+    if len(transacties) == 0:
+        print("Er zitten nog geen transacties in deze database.")
     for transactie in transacties:
         print(transactie)
 
@@ -33,7 +36,6 @@ def menu():
             print(f"Dit was je keuze: {keuze}")
             if keuze in (1, 2, 3, 4):
                 keuze_succesvol = True
-                print("Goede keuze")
             else:
                 print("Je moet een getal van 1 tot 4 ingeven.")
         except ValueError:

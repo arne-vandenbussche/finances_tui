@@ -11,6 +11,11 @@ from pathlib import Path
 import logging
 from model.transactie import Transactie
 from datetime import date, datetime
+from environs import Env # https://pypi.org/project/environs/
+
+env = Env()
+env.read_env() # read .env file if it exists
+DATABASE_NAME = env.str("DATABASE")
 
 def is_valid_date(date_string: str) -> bool:
     try:
@@ -53,7 +58,7 @@ def convert_transaction_row_to_object(transaction_row: tuple) -> Transactie:
 
 def get_connection() -> sqlite3.Connection:
     logger = logging.getLogger(__name__)
-    db_file_name = "df-bis-financieel.db"
+    db_file_name = DATABASE_NAME
     db_directory = Path.cwd()
     full_db_path = db_directory / db_file_name
     is_new_db = not full_db_path.exists()
@@ -119,14 +124,15 @@ def get_transactions_by_date(transaction_date: date) -> list[Transactie]:
     conn.close()
     transaction_list = [convert_transaction_row_to_object(row) for row in rows]
     return transaction_list
-    def get_transaction_by_description(part_description: str) -> list[Transactie]:
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM transacties WHERE LOWER(beschrijving) LIKE '%' || LOWER(?) || '%' OR LOWER(van_aan) LIKE '%' || LOWER(?) || '%'", (part_description, part_description))
-        rows = cursor.fetchall()
-        conn.close()
-        transaction_list = [convert_transaction_row_to_object(row) for row in rows]
-        return transaction_list
+
+def get_transaction_by_description(part_description: str) -> list[Transactie]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM transacties WHERE LOWER(beschrijving) LIKE '%' || LOWER(?) || '%' OR LOWER(van_aan) LIKE '%' || LOWER(?) || '%'", (part_description, part_description))
+    rows = cursor.fetchall()
+    conn.close()
+    transaction_list = [convert_transaction_row_to_object(row) for row in rows]
+    return transaction_list
 
 def save_transaction(transaction: Transactie) -> None:
     conn = get_connection()
