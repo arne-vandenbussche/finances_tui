@@ -1,6 +1,5 @@
 from model.transactie import Transactie
 import db.db_transacties
-import services
 import sys
 
 def toon_alle_transacties():
