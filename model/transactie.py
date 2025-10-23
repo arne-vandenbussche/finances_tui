@@ -8,6 +8,11 @@ class Transactie():
                  beschrijving: str = "", factuurnummer: str = "",
                  factuurdatum: date = date.today(), categorie: str = "",
                  actuele_rekeningstand: float = 0.0):
+        if id is None:
+            self.id = 0
+        else:
+            self.id = id
+            
         self.id = id
         self.datum = datum
         self.bedrag = bedrag
