@@ -1,0 +1,3 @@
+environs==14.3.0
+marshmallow==4.0.1
+python-dotenv==1.1.1
