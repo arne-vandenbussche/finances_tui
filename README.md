@@ -34,7 +34,7 @@ DATABASE=name_of_database
 Vervang de naam van de database door de naam die je wil gebruiken.
 Als de database nog niet bestaat, zal hij aangemaakt worden
 
-# Hoe utivoeren
+# Hoe uitvoeren
 
 1. Clone the repository of download de code
 
