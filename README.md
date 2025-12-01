@@ -55,4 +55,23 @@ pip install -r requirements.txt
 python -m main
 ```
 
+# Structure of the database
+
+The databases consists of only one table: 
+
+```sql
+CREATE TABLE transacties (
+id integer primary key,
+datum date not null,
+bedrag double not null default 0,
+betaalwijze text not null,
+rekeningnummer text,
+van_aan text,
+beschrijving text,
+factuurnummer text,
+factuurdatum date,
+categorie text,
+actuele_rekeningstand double);
+```
+
 
