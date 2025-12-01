@@ -1,56 +1,55 @@
-# Doel
+# Purpose
 
-Een kleine TUI-applicatie bouwen om financiële transacties van een vereniging bij te houden.
+A small TUI application to manage financial transactions of a club.
 
-# Technologie
+# Technology
 
-- Python (Vanaf 3.11)
+- Python (from 3.11)
 
-# Bibliotheken
-(zie requierements.txt)
+# Libraries
+(see requirements.txt)
 
-- environs
+- environs: to read settings from .env file.
 
-# Uitwerkte functionaliteiten
+# Functions
 
-- Toon alle transacties
+- Show all transactions
 
-# Op de planning
+# Planned functions
 
-- Transactie toevoegen
-- Transactie wijzigen
-- Transactie verwijderen
-- Export naar csv
-- Filtermogelijkheden voorzien bij het tonen of exporteren van transacties
-- UI verbeteren (introductie van Textual)
+- Add a transaction
+- Update a transactions
+- Remove a transaction
+- Export to csv
+- Filter options when viewing the transactions
 
-# Naam database
+# Database name
 
-Voorzie in de hoofdmap een bestand met de naam `.env`. Voeg daarin de tekst:
+Create a file `.env` in the main folder. Add the text: 
 
 ```text
 DATABASE=name_of_database
-````
-Vervang de naam van de database door de naam die je wil gebruiken.
-Als de database nog niet bestaat, zal hij aangemaakt worden
+```
 
-# Hoe uitvoeren
+Replace the name of the database by the name you want to use. If the database does not exist, it will be created.
 
-1. Clone the repository of download de code
+# How to execute
 
-2. Maak een virtuele omgeving:
+1. Clone the repository or download the code.
+
+2. Create a virtual environment.
 
 ```bash
 python -m venv .venv
 ```
 
-3. Installeer de externe bibliotheken
+3. Install external libraries
 
 ```bash
-pip install -r requiements.txt
+pip install -r requirements.txt
 ```
 
-4. Voer de code uit:
+4. Execute the code
 
 ```
 python -m main

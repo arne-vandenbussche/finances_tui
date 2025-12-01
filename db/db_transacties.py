@@ -6,12 +6,12 @@ Created on Sun Apr 13 10:14:13 2025
 @author: arnevandenbussche
 """
 
+from environs import Env # https://pypi.org/project/environs/
 import sqlite3
 from pathlib import Path
 import logging
 from model.transactie import Transactie
 from datetime import date, datetime
-from environs import Env # https://pypi.org/project/environs/
 
 env = Env()
 env.read_env() # read .env file if it exists
