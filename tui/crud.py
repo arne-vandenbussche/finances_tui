@@ -6,15 +6,15 @@ def toon_alle_transacties():
     transacties = []
     transacties = db.db_transacties.get_all_transactions()
     if len(transacties) == 0:
-        print("Er zitten nog geen transacties in deze database.")
+        print("There aren't any transactions in this database.")
     for transactie in transacties:
         print(transactie)
 
 def voeg_een_transactie_toe():
-    print("We hebben deze functie nog niet uitgewerkt. Onze excuses.")
+    print("Our apologies. We haven't implemented this function yet.")
 
 def exporteer_de_transacties_naar_csv():
-    print("Het exporteren van de transacties naar csv is niet niet uitgewerkt")
+    print("Our apologies. The function to export to csv has not been implemented yet.")
 
 def programma_verlaten():
     sys.exit(0)
@@ -23,22 +23,22 @@ def programma_verlaten():
 def menu():
     print(
 """
-1. Toon alle transacties
-2. Voeg een transactie toe.
-3. Exporteer alle transacties naar een csv-bestand.
-4. Verlaat het programma.
+1. Show all transactions.
+2. Add a transaction.
+3. Export all transactions to a csv file.
+4. Leave the application.
 """)
     keuze_succesvol = False
     while not keuze_succesvol:
         try:
-            keuze = int(input("Geef het nummer van je keuze: "))
-            print(f"Dit was je keuze: {keuze}")
+            keuze = int(input("Enter the number of your choice: "))
+            print(f"This was your choice: {keuze}")
             if keuze in (1, 2, 3, 4):
                 keuze_succesvol = True
             else:
-                print("Je moet een getal van 1 tot 4 ingeven.")
+                print("You have to give a number from 1 to 4.")
         except ValueError:
-            print("Je moet een geheel getal van 1 tot 4 ingeven.")
+            print("You must enter a whole number from 1 to 4.")
     if keuze == 1:
         toon_alle_transacties()
     elif keuze == 2:

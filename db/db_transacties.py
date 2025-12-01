@@ -93,14 +93,13 @@ def initialize_database(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 def get_all_transactions() -> list[Transactie]:
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM transacties order by datum desc")
-    all_row_transactions = cursor.fetchall()
-    conn.close()
     transaction_list = []
-    for transaction in all_row_transactions:
-        transaction_list.append(convert_transaction_row_to_object(transaction))
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM transacties order by datum desc")
+        all_row_transactions = cursor.fetchall()
+        for transaction in all_row_transactions:
+            transaction_list.append(convert_transaction_row_to_object(transaction))
     return transaction_list
 
 
