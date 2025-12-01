@@ -104,6 +104,7 @@ def get_all_transactions() -> list[Transactie]:
 
 
 def get_transaction_by_id(transaction_id: int) -> Transactie:
+    # TODO: add context manager
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM transacties WHERE id = ?", (transaction_id,))
@@ -116,6 +117,7 @@ def get_transaction_by_id(transaction_id: int) -> Transactie:
 
 
 def get_transactions_by_date(transaction_date: date) -> list[Transactie]:
+    # TODO: add context manager. That's cleaner
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM transacties WHERE datum = ?", (transaction_date,))
@@ -125,6 +127,7 @@ def get_transactions_by_date(transaction_date: date) -> list[Transactie]:
     return transaction_list
 
 def get_transaction_by_description(part_description: str) -> list[Transactie]:
+    # TODO: add context manager. That's cleaner
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM transacties WHERE LOWER(beschrijving) LIKE '%' || LOWER(?) || '%' OR LOWER(van_aan) LIKE '%' || LOWER(?) || '%'", (part_description, part_description))
@@ -134,6 +137,7 @@ def get_transaction_by_description(part_description: str) -> list[Transactie]:
     return transaction_list
 
 def save_transaction(transaction: Transactie) -> None:
+    # TODO: add context manager. That's cleaner and safer.
     conn = get_connection()
     cursor = conn.cursor()
 
