@@ -5,7 +5,7 @@ Created on Sun Apr 13 10:14:13 2025
 
 @author: arnevandenbussche
 """
-
+# TODO: add exception handling
 from environs import Env # https://pypi.org/project/environs/
 import sqlite3
 from pathlib import Path
