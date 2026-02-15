@@ -44,7 +44,7 @@ def convert_transaction_row_to_object(transaction_row: tuple) -> Transaction:
         tr_date_of_transaction = date(1000, 1, 1)
         logger.warning("Transaction with id=%s has an invalid date_of_transaction", tr_id)
 
-    tr_bedrag = transaction_row[2]
+    tr_amount = transaction_row[2]
     tr_payment_method = transaction_row[3]
     tr_partner = transaction_row[4]
     tr_in_out = transaction_row[5]
@@ -67,7 +67,7 @@ def convert_transaction_row_to_object(transaction_row: tuple) -> Transaction:
     return Transaction(
         id=tr_id,
         date_of_transaction=tr_date_of_transaction,
-        bedrag=tr_bedrag,
+        amount=tr_amount,
         payment_method=tr_payment_method,
         partner=tr_partner,
         in_out=tr_in_out,
@@ -106,7 +106,7 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         """CREATE TABLE if not exists transactions (
     id integer primary key,
     date_of_transaction text not null,
-    bedrag real not null default 0,
+    amount real not null default 0,
     payment_method integer references payment_methods(id),
     partner integer not null references partners(id),
     in_out text CHECK (in_out IN ('in', 'out')) NOT NULL,
@@ -205,13 +205,13 @@ def save_transaction(transaction: Transaction) -> None:
             cursor.execute(
                 """
             INSERT INTO transactions
-            (date_of_transaction, bedrag, payment_method, partner, in_out, description,
+            (date_of_transaction, amount, payment_method, partner, in_out, description,
             invoice_number, invoice_date, category, activity, season, actuele_rekeningstand)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     _serialize_date(transaction.date_of_transaction),
-                    transaction.bedrag,
+                    transaction.amount,
                     transaction.payment_method,
                     transaction.partner,
                     transaction.in_out,
@@ -228,13 +228,13 @@ def save_transaction(transaction: Transaction) -> None:
             cursor.execute(
                 """
             UPDATE transactions
-            SET date_of_transaction=?, bedrag=?, payment_method=?, partner=?, in_out=?, description=?,
+            SET date_of_transaction=?, amount=?, payment_method=?, partner=?, in_out=?, description=?,
             invoice_number=?, invoice_date=?, category=?, activity=?, season=?, actuele_rekeningstand=?
             WHERE id=?
             """,
                 (
                     _serialize_date(transaction.date_of_transaction),
-                    transaction.bedrag,
+                    transaction.amount,
                     transaction.payment_method,
                     transaction.partner,
                     transaction.in_out,

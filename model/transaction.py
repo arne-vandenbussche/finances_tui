@@ -7,7 +7,7 @@ import logging
 class Transaction:
     id: int = 0
     date_of_transaction: date = field(default_factory=date.today)
-    bedrag: float = 0.0
+    amount: float = 0.0
     payment_method: int | None = None
     partner: int = 0
     in_out: str = "out"
@@ -31,6 +31,6 @@ class Transaction:
     def __str__(self) -> str:
         return (
             f"Date: {self.date_of_transaction}. "
-            f"Amount: {self.bedrag}. "
+            f"Amount: {self.amount}. "
             f"Description: {self.description}"
         )

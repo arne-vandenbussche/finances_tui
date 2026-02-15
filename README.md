@@ -63,7 +63,7 @@ The database consists of these tables:
 CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY,
     date_of_transaction TEXT NOT NULL,
-    bedrag REAL NOT NULL DEFAULT 0,
+    amount REAL NOT NULL DEFAULT 0,
     payment_method INTEGER REFERENCES payment_methods(id),
     partner INTEGER NOT NULL REFERENCES partners(id),
     in_out TEXT CHECK (in_out IN ('in', 'out')) NOT NULL,
