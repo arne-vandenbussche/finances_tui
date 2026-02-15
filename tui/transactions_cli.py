@@ -49,13 +49,43 @@ class TransactionsApp(App):
     #table_panel {
         width: 2fr;
         height: 1fr;
+        layout: vertical;
     }
 
     #table_filters {
-        height: auto;
+        height: 9;
         border: round $secondary;
         padding: 0 1;
         margin-bottom: 1;
+    }
+
+    #filter_row_top, #filter_row_bottom {
+        height: 3;
+        align-vertical: middle;
+    }
+
+    #search_filter_input {
+        width: 1fr;
+    }
+
+    #date_filter_input {
+        width: 20;
+    }
+
+    #in_out_filter_select {
+        width: 10;
+    }
+
+    #activity_filter_select, #category_filter_select, #sort_field_select {
+        width: 24;
+    }
+
+    #sort_dir_select {
+        width: 10;
+    }
+
+    #apply_filters_button, #clear_filters_button {
+        width: 10;
     }
 
     #transactions_table {
@@ -107,36 +137,50 @@ class TransactionsApp(App):
         yield Header()
         with Horizontal(id="main"):
             with Vertical(id="table_panel"):
-                with Horizontal(id="table_filters"):
-                    yield Label("Search")
-                    yield Input(placeholder="description / partner / invoice", id="search_filter_input")
-                    yield Label("Type")
-                    yield Select(
-                        options=[("All", ""), ("in", "in"), ("out", "out")],
-                        id="in_out_filter_select",
-                    )
-                    yield Label("Category")
-                    yield Select(options=[("All", "")], id="category_filter_select")
-                    yield Label("Sort")
-                    yield Select(
-                        options=[
-                            ("Date", "date"),
-                            ("Amount", "amount"),
-                            ("Partner", "partner"),
-                            ("Category", "category"),
-                            ("Activity", "activity"),
-                            ("Season", "season"),
-                            ("Type", "type"),
-                            ("ID", "id"),
-                        ],
-                        id="sort_field_select",
-                    )
-                    yield Select(
-                        options=[("Desc", "desc"), ("Asc", "asc")],
-                        id="sort_dir_select",
-                    )
-                    yield Button("Apply", id="apply_filters_button", variant="primary")
-                    yield Button("Clear", id="clear_filters_button", variant="default")
+                with Vertical(id="table_filters"):
+                    with Horizontal(id="filter_row_top"):
+                        yield Label("Search")
+                        yield Input(
+                            placeholder="description / partner",
+                            type="text",
+                            id="search_filter_input",
+                        )
+                        yield Label("Date")
+                        yield Input(
+                            placeholder="YYYY-MM-DD or part",
+                            type="text",
+                            id="date_filter_input",
+                        )
+                        yield Label("Type")
+                        yield Select(
+                            options=[("All", ""), ("in", "in"), ("out", "out")],
+                            id="in_out_filter_select",
+                        )
+                        yield Button("Apply", id="apply_filters_button", variant="primary")
+                        yield Button("Clear", id="clear_filters_button", variant="default")
+                    with Horizontal(id="filter_row_bottom"):
+                        yield Label("Activity")
+                        yield Select(options=[("All", "")], id="activity_filter_select")
+                        yield Label("Category")
+                        yield Select(options=[("All", "")], id="category_filter_select")
+                        yield Label("Sort")
+                        yield Select(
+                            options=[
+                                ("Date", "date"),
+                                ("Amount", "amount"),
+                                ("Partner", "partner"),
+                                ("Category", "category"),
+                                ("Activity", "activity"),
+                                ("Season", "season"),
+                                ("Type", "type"),
+                                ("ID", "id"),
+                            ],
+                            id="sort_field_select",
+                        )
+                        yield Select(
+                            options=[("Desc", "desc"), ("Asc", "asc")],
+                            id="sort_dir_select",
+                        )
                 yield DataTable(id="transactions_table", zebra_stripes=True, cursor_type="row")
             with Vertical(id="form_panel"):
                 yield Label("Transaction date (YYYY-MM-DD)", classes="form_label")
@@ -221,8 +265,15 @@ class TransactionsApp(App):
         category_filter_options.extend(
             (name, str(item_id)) for item_id, name in self.lookup_categories.items()
         )
+        activity_filter_options = [("All", "")]
+        activity_filter_options.extend(
+            (name, str(item_id)) for item_id, name in self.lookup_activities.items()
+        )
         self.query_one("#category_filter_select", Select).set_options(category_filter_options)
-        self.query_one("#in_out_filter_select", Select).value = ""
+        self.query_one("#activity_filter_select", Select).set_options(activity_filter_options)
+        self._set_select_to_blank("#in_out_filter_select")
+        self._set_select_to_blank("#activity_filter_select")
+        self._set_select_to_blank("#category_filter_select")
         self.query_one("#sort_field_select", Select).value = "date"
         self.query_one("#sort_dir_select", Select).value = "desc"
 
@@ -246,7 +297,9 @@ class TransactionsApp(App):
         table.clear()
 
         search_filter = self.query_one("#search_filter_input", Input).value.strip().lower()
+        date_filter = self.query_one("#date_filter_input", Input).value.strip().replace("/", "-")
         in_out_filter = self._read_select_str("#in_out_filter_select")
+        activity_filter = self._read_select_str("#activity_filter_select")
         category_filter = self._read_select_str("#category_filter_select")
         sort_field = self._read_select_str("#sort_field_select") or "date"
         sort_dir = (self._read_select_str("#sort_dir_select") or "desc").lower()
@@ -270,19 +323,26 @@ class TransactionsApp(App):
         if search_filter:
             where_clauses.append(
                 "(LOWER(COALESCE(t.description, '')) LIKE ? OR "
-                "LOWER(COALESCE(p.name, '')) LIKE ? OR "
-                "LOWER(COALESCE(t.invoice_number, '')) LIKE ?)"
+                "LOWER(COALESCE(p.name, '')) LIKE ?)"
             )
             like_value = f"%{search_filter}%"
-            params.extend([like_value, like_value, like_value])
+            params.extend([like_value, like_value])
+
+        if date_filter:
+            where_clauses.append("COALESCE(t.date_of_transaction, '') LIKE ?")
+            params.append(f"%{date_filter}%")
 
         if in_out_filter in ("in", "out"):
             where_clauses.append("t.in_out = ?")
             params.append(in_out_filter)
 
-        if category_filter:
+        if activity_filter.isdigit():
+            where_clauses.append("t.activity = ?")
+            params.append(int(activity_filter))
+
+        if category_filter.isdigit():
             where_clauses.append("t.category = ?")
-            params.append(category_filter)
+            params.append(int(category_filter))
 
         where_sql = ""
         if where_clauses:
@@ -321,9 +381,12 @@ class TransactionsApp(App):
 
     def _read_select_str(self, selector: str) -> str:
         value = self.query_one(selector, Select).value
-        if value is None or value == Select.BLANK:
+        if value is None or value == Select.BLANK or value == "":
             return ""
         return str(value)
+
+    def _set_select_to_blank(self, selector: str) -> None:
+        self.query_one(selector, Select).value = Select.BLANK
 
     def _clear_form_for_new(self) -> None:
         self.current_transaction_id = 0
@@ -414,7 +477,7 @@ class TransactionsApp(App):
             self._save_current_form()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        if event.input.id == "search_filter_input":
+        if event.input.id in ("search_filter_input", "date_filter_input"):
             self._load_transactions()
             self._set_status("Filters applied")
 
@@ -436,8 +499,10 @@ class TransactionsApp(App):
 
     def action_clear_filters(self) -> None:
         self.query_one("#search_filter_input", Input).value = ""
-        self.query_one("#in_out_filter_select", Select).value = ""
-        self.query_one("#category_filter_select", Select).value = ""
+        self.query_one("#date_filter_input", Input).value = ""
+        self._set_select_to_blank("#in_out_filter_select")
+        self._set_select_to_blank("#activity_filter_select")
+        self._set_select_to_blank("#category_filter_select")
         self.query_one("#sort_field_select", Select).value = "date"
         self.query_one("#sort_dir_select", Select).value = "desc"
         self._load_transactions()
