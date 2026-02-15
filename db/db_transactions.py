@@ -61,7 +61,8 @@ def convert_transaction_row_to_object(transaction_row: tuple) -> Transaction:
 
     tr_category = transaction_row[9]
     tr_activity = transaction_row[10]
-    tr_actuele_rekeningstand = transaction_row[11]
+    tr_season = transaction_row[11]
+    tr_actuele_rekeningstand = transaction_row[12]
 
     return Transaction(
         id=tr_id,
@@ -75,6 +76,7 @@ def convert_transaction_row_to_object(transaction_row: tuple) -> Transaction:
         invoice_date=tr_invoice_date,
         category=tr_category,
         activity=tr_activity,
+        season=tr_season,
         actuele_rekeningstand=tr_actuele_rekeningstand,
     )
 
@@ -101,18 +103,19 @@ def get_connection() -> sqlite3.Connection:
 def initialize_database(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
     cursor.executescript(
-        """CREATE TABLE if not exists transacties (
+        """CREATE TABLE if not exists transactions (
     id integer primary key,
     date_of_transaction text not null,
     bedrag real not null default 0,
-    payment_method integer references payment_method(id),
-    partner integer not null references partner(id),
+    payment_method integer references payment_methods(id),
+    partner integer not null references partners(id),
     in_out text CHECK (in_out IN ('in', 'out')) NOT NULL,
     description text,
     invoice_number text,
     invoice_date date,
     category integer not null references categories(id),
     activity integer references activities(id),
+    season integer references seasons(id),
     actuele_rekeningstand real
     );
 
@@ -128,14 +131,20 @@ def initialize_database(conn: sqlite3.Connection) -> None:
     description text
     );
 
-    CREATE TABLE if not exists partner(
+    CREATE TABLE if not exists partners(
     id integer primary key,
     name text not null,
     bank_account text,
     description text
     );
 
-    CREATE TABLE if not exists payment_method(
+    CREATE TABLE if not exists payment_methods(
+    id integer primary key,
+    name text not null,
+    description text
+    );
+
+    CREATE TABLE if not exists seasons(
     id integer primary key,
     name text not null,
     description text
@@ -148,7 +157,7 @@ def initialize_database(conn: sqlite3.Connection) -> None:
 def get_all_transactions() -> list[Transaction]:
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM transacties ORDER BY date_of_transaction DESC")
+        cursor.execute("SELECT * FROM transactions ORDER BY date_of_transaction DESC")
         all_row_transactions = cursor.fetchall()
         return [convert_transaction_row_to_object(transaction) for transaction in all_row_transactions]
 
@@ -156,7 +165,7 @@ def get_all_transactions() -> list[Transaction]:
 def get_transaction_by_id(transaction_id: int) -> Transaction | None:
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM transacties WHERE id = ?", (transaction_id,))
+        cursor.execute("SELECT * FROM transactions WHERE id = ?", (transaction_id,))
         transaction_row = cursor.fetchone()
 
     if transaction_row:
@@ -168,7 +177,7 @@ def get_transactions_by_date(transaction_date: date) -> list[Transaction]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM transacties WHERE date_of_transaction = ?",
+            "SELECT * FROM transactions WHERE date_of_transaction = ?",
             (transaction_date.isoformat(),),
         )
         rows = cursor.fetchall()
@@ -180,7 +189,7 @@ def get_transaction_by_description(part_description: str) -> list[Transaction]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM transacties WHERE LOWER(description) LIKE '%' || LOWER(?) || '%'",
+            "SELECT * FROM transactions WHERE LOWER(description) LIKE '%' || LOWER(?) || '%'",
             (part_description,),
         )
         rows = cursor.fetchall()
@@ -195,10 +204,10 @@ def save_transaction(transaction: Transaction) -> None:
         if transaction.id == 0:
             cursor.execute(
                 """
-            INSERT INTO transacties
+            INSERT INTO transactions
             (date_of_transaction, bedrag, payment_method, partner, in_out, description,
-            invoice_number, invoice_date, category, activity, actuele_rekeningstand)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            invoice_number, invoice_date, category, activity, season, actuele_rekeningstand)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     _serialize_date(transaction.date_of_transaction),
@@ -211,15 +220,16 @@ def save_transaction(transaction: Transaction) -> None:
                     _serialize_date(transaction.invoice_date),
                     transaction.category,
                     transaction.activity,
+                    transaction.season,
                     transaction.actuele_rekeningstand,
                 ),
             )
         else:
             cursor.execute(
                 """
-            UPDATE transacties
+            UPDATE transactions
             SET date_of_transaction=?, bedrag=?, payment_method=?, partner=?, in_out=?, description=?,
-            invoice_number=?, invoice_date=?, category=?, activity=?, actuele_rekeningstand=?
+            invoice_number=?, invoice_date=?, category=?, activity=?, season=?, actuele_rekeningstand=?
             WHERE id=?
             """,
                 (
@@ -233,6 +243,7 @@ def save_transaction(transaction: Transaction) -> None:
                     _serialize_date(transaction.invoice_date),
                     transaction.category,
                     transaction.activity,
+                    transaction.season,
                     transaction.actuele_rekeningstand,
                     transaction.id,
                 ),

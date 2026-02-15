@@ -16,6 +16,7 @@ class Transaction:
     invoice_date: date | None = None
     category: int = 0
     activity: int | None = None
+    season: int | None = None
     actuele_rekeningstand: float = 0.0
 
     def __post_init__(self) -> None:

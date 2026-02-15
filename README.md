@@ -60,18 +60,19 @@ python -m main
 The database consists of these tables:
 
 ```sql
-CREATE TABLE IF NOT EXISTS transacties (
+CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY,
     date_of_transaction TEXT NOT NULL,
     bedrag REAL NOT NULL DEFAULT 0,
-    payment_method INTEGER REFERENCES payment_method(id),
-    partner INTEGER NOT NULL REFERENCES partner(id),
+    payment_method INTEGER REFERENCES payment_methods(id),
+    partner INTEGER NOT NULL REFERENCES partners(id),
     in_out TEXT CHECK (in_out IN ('in', 'out')) NOT NULL,
     description TEXT,
     invoice_number TEXT,
     invoice_date DATE,
     category INTEGER NOT NULL REFERENCES categories(id),
     activity INTEGER REFERENCES activities(id),
+    season INTEGER REFERENCES seasons(id),
     actuele_rekeningstand REAL
 );
 
@@ -87,17 +88,22 @@ CREATE TABLE IF NOT EXISTS activities (
     description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS partner (
+CREATE TABLE IF NOT EXISTS partners (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     bank_account TEXT,
     description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS payment_method (
+CREATE TABLE IF NOT EXISTS payment_methods (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE IF NOT EXISTS seasons (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT
 );
 ```
-
