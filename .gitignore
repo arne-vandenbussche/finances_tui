@@ -32,6 +32,8 @@ ENV/
 env.bak/
 venv.bak/
 pythonenv*
+# IDE - Spyder
+.spyproject/
 
 # IDE - PyCharm/IntelliJ
 .idea/
