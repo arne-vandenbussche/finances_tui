@@ -27,7 +27,10 @@ class TransactionsApp(App):
         Binding("ctrl+n", "new_transaction", "New", show=True),
         Binding("ctrl+s", "save_transaction", "Save", show=True),
         Binding("ctrl+r", "refresh_data", "Refresh", show=True),
+        Binding("ctrl+g", "apply_filters", "Apply Filters", show=True),
+        Binding("ctrl+l", "clear_filters", "Clear Filters", show=True),
         Binding("ctrl+t", "focus_table", "Focus Table", show=True),
+        Binding("ctrl+k", "focus_filters", "Focus Filters", show=True),
         Binding("ctrl+f", "focus_form", "Focus Form", show=True),
         Binding("ctrl+e", "open_selected_transaction", "Edit Selected", show=True),
         Binding("tab", "focus_next", "Next Field", show=True),
@@ -43,8 +46,20 @@ class TransactionsApp(App):
         height: 1fr;
     }
 
-    #transactions_table {
+    #table_panel {
         width: 2fr;
+        height: 1fr;
+    }
+
+    #table_filters {
+        height: auto;
+        border: round $secondary;
+        padding: 0 1;
+        margin-bottom: 1;
+    }
+
+    #transactions_table {
+        width: 1fr;
         height: 1fr;
     }
 
@@ -91,7 +106,38 @@ class TransactionsApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Horizontal(id="main"):
-            yield DataTable(id="transactions_table", zebra_stripes=True, cursor_type="row")
+            with Vertical(id="table_panel"):
+                with Horizontal(id="table_filters"):
+                    yield Label("Search")
+                    yield Input(placeholder="description / partner / invoice", id="search_filter_input")
+                    yield Label("Type")
+                    yield Select(
+                        options=[("All", ""), ("in", "in"), ("out", "out")],
+                        id="in_out_filter_select",
+                    )
+                    yield Label("Category")
+                    yield Select(options=[("All", "")], id="category_filter_select")
+                    yield Label("Sort")
+                    yield Select(
+                        options=[
+                            ("Date", "date"),
+                            ("Amount", "amount"),
+                            ("Partner", "partner"),
+                            ("Category", "category"),
+                            ("Activity", "activity"),
+                            ("Season", "season"),
+                            ("Type", "type"),
+                            ("ID", "id"),
+                        ],
+                        id="sort_field_select",
+                    )
+                    yield Select(
+                        options=[("Desc", "desc"), ("Asc", "asc")],
+                        id="sort_dir_select",
+                    )
+                    yield Button("Apply", id="apply_filters_button", variant="primary")
+                    yield Button("Clear", id="clear_filters_button", variant="default")
+                yield DataTable(id="transactions_table", zebra_stripes=True, cursor_type="row")
             with Vertical(id="form_panel"):
                 yield Label("Transaction date (YYYY-MM-DD)", classes="form_label")
                 yield Input(value=date.today().isoformat(), id="date_input", classes="form_input")
@@ -164,10 +210,21 @@ class TransactionsApp(App):
         self._set_select_options("#activity_select", self.lookup_activities)
         self._set_select_options("#season_select", self.lookup_seasons)
         self._set_select_options("#partner_select", self.lookup_partners)
+        self._set_filter_options()
 
     def _set_select_options(self, selector: str, lookup: dict[int, str]) -> None:
         options = [(name, str(item_id)) for item_id, name in lookup.items()]
         self.query_one(selector, Select).set_options(options)
+
+    def _set_filter_options(self) -> None:
+        category_filter_options = [("All", "")]
+        category_filter_options.extend(
+            (name, str(item_id)) for item_id, name in self.lookup_categories.items()
+        )
+        self.query_one("#category_filter_select", Select).set_options(category_filter_options)
+        self.query_one("#in_out_filter_select", Select).value = ""
+        self.query_one("#sort_field_select", Select).value = "date"
+        self.query_one("#sort_dir_select", Select).value = "desc"
 
     def _setup_table(self) -> None:
         table = self.query_one("#transactions_table", DataTable)
@@ -188,9 +245,52 @@ class TransactionsApp(App):
         table = self.query_one("#transactions_table", DataTable)
         table.clear()
 
+        search_filter = self.query_one("#search_filter_input", Input).value.strip().lower()
+        in_out_filter = self._read_select_str("#in_out_filter_select")
+        category_filter = self._read_select_str("#category_filter_select")
+        sort_field = self._read_select_str("#sort_field_select") or "date"
+        sort_dir = (self._read_select_str("#sort_dir_select") or "desc").lower()
+
+        sort_map = {
+            "id": "t.id",
+            "date": "t.date_of_transaction",
+            "amount": "t.amount",
+            "type": "t.in_out",
+            "partner": "p.name",
+            "category": "c.name",
+            "activity": "a.name",
+            "season": "s.name",
+        }
+        order_field = sort_map.get(sort_field, "t.date_of_transaction")
+        order_dir = "ASC" if sort_dir == "asc" else "DESC"
+
+        where_clauses: list[str] = []
+        params: list[str] = []
+
+        if search_filter:
+            where_clauses.append(
+                "(LOWER(COALESCE(t.description, '')) LIKE ? OR "
+                "LOWER(COALESCE(p.name, '')) LIKE ? OR "
+                "LOWER(COALESCE(t.invoice_number, '')) LIKE ?)"
+            )
+            like_value = f"%{search_filter}%"
+            params.extend([like_value, like_value, like_value])
+
+        if in_out_filter in ("in", "out"):
+            where_clauses.append("t.in_out = ?")
+            params.append(in_out_filter)
+
+        if category_filter:
+            where_clauses.append("t.category = ?")
+            params.append(category_filter)
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
+
         with db_transactions.get_connection() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT
                     t.id,
                     t.date_of_transaction,
@@ -208,14 +308,22 @@ class TransactionsApp(App):
                 LEFT JOIN categories c ON c.id = t.category
                 LEFT JOIN activities a ON a.id = t.activity
                 LEFT JOIN seasons s ON s.id = t.season
-                ORDER BY t.date_of_transaction DESC, t.id DESC
-                """
+                {where_sql}
+                ORDER BY {order_field} {order_dir}, t.id DESC
+                """,
+                params,
             ).fetchall()
 
         for row in rows:
             table.add_row(*[str(value) if value is not None else "" for value in row], key=str(row[0]))
 
         self._set_status(f"Loaded {len(rows)} transactions")
+
+    def _read_select_str(self, selector: str) -> str:
+        value = self.query_one(selector, Select).value
+        if value is None or value == Select.BLANK:
+            return ""
+        return str(value)
 
     def _clear_form_for_new(self) -> None:
         self.current_transaction_id = 0
@@ -291,12 +399,24 @@ class TransactionsApp(App):
         if event.button.id == "new_button":
             self._clear_form_for_new()
             return
+        if event.button.id == "apply_filters_button":
+            self._load_transactions()
+            self._set_status("Filters applied")
+            return
+        if event.button.id == "clear_filters_button":
+            self.action_clear_filters()
+            return
         if event.button.id == "refresh_button":
             self._load_lookups()
             self._load_transactions()
             return
         if event.button.id == "save_button":
             self._save_current_form()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "search_filter_input":
+            self._load_transactions()
+            self._set_status("Filters applied")
 
     def action_new_transaction(self) -> None:
         self._clear_form_for_new()
@@ -310,9 +430,26 @@ class TransactionsApp(App):
         self._load_transactions()
         self._set_status("Data refreshed")
 
+    def action_apply_filters(self) -> None:
+        self._load_transactions()
+        self._set_status("Filters applied")
+
+    def action_clear_filters(self) -> None:
+        self.query_one("#search_filter_input", Input).value = ""
+        self.query_one("#in_out_filter_select", Select).value = ""
+        self.query_one("#category_filter_select", Select).value = ""
+        self.query_one("#sort_field_select", Select).value = "date"
+        self.query_one("#sort_dir_select", Select).value = "desc"
+        self._load_transactions()
+        self._set_status("Filters cleared")
+
     def action_focus_table(self) -> None:
         self.query_one("#transactions_table", DataTable).focus()
         self._set_status("Focused transactions table")
+
+    def action_focus_filters(self) -> None:
+        self.query_one("#search_filter_input", Input).focus()
+        self._set_status("Focused filter bar")
 
     def action_focus_form(self) -> None:
         self.query_one("#date_input", Input).focus()
