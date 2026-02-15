@@ -4,8 +4,9 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, DataTable, Footer, Header, Input, Label, Select, Static
+from textual.widgets import Button, DataTable, Footer, Header, Input, Label, Select, Static, TextArea
 
 from db import db_transactions
 from model.transaction import Transaction
@@ -22,6 +23,16 @@ def _is_valid_date(value: str) -> bool:
 class TransactionsApp(App):
     TITLE = "Finance Transactions"
     SUB_TITLE = "Overview and edit/add"
+    BINDINGS = [
+        Binding("ctrl+n", "new_transaction", "New", show=True),
+        Binding("ctrl+s", "save_transaction", "Save", show=True),
+        Binding("ctrl+r", "refresh_data", "Refresh", show=True),
+        Binding("ctrl+t", "focus_table", "Focus Table", show=True),
+        Binding("ctrl+f", "focus_form", "Focus Form", show=True),
+        Binding("ctrl+e", "open_selected_transaction", "Edit Selected", show=True),
+        Binding("tab", "focus_next", "Next Field", show=True),
+        Binding("shift+tab", "focus_previous", "Prev Field", show=True),
+    ]
 
     CSS = """
     Screen {
@@ -116,7 +127,7 @@ class TransactionsApp(App):
                 yield Input(value="", id="balance_input", classes="form_input")
 
                 yield Label("Description", classes="form_label")
-                yield Input(value="", id="description_input", classes="form_input")
+                yield TextArea(text="", id="description_input", classes="form_input")
 
                 with Horizontal(id="actions"):
                     yield Button("New", id="new_button", variant="default")
@@ -131,6 +142,7 @@ class TransactionsApp(App):
         self._setup_table()
         self._load_transactions()
         self._clear_form_for_new()
+        self.action_focus_table()
 
     def _set_status(self, message: str) -> None:
         self.query_one("#status", Static).update(message)
@@ -213,7 +225,7 @@ class TransactionsApp(App):
         self.query_one("#invoice_number_input", Input).value = ""
         self.query_one("#invoice_date_input", Input).value = ""
         self.query_one("#balance_input", Input).value = ""
-        self.query_one("#description_input", Input).value = ""
+        self.query_one("#description_input", TextArea).text = ""
 
         self._set_default_lookup_values()
         self._set_status("New transaction mode")
@@ -259,7 +271,7 @@ class TransactionsApp(App):
         self.query_one("#balance_input", Input).value = (
             "" if transaction.actuele_rekeningstand is None else str(transaction.actuele_rekeningstand)
         )
-        self.query_one("#description_input", Input).value = transaction.description or ""
+        self.query_one("#description_input", TextArea).text = transaction.description or ""
 
         self._set_select_value("#payment_method_select", transaction.payment_method)
         self._set_select_value("#partner_select", transaction.partner)
@@ -285,6 +297,33 @@ class TransactionsApp(App):
             return
         if event.button.id == "save_button":
             self._save_current_form()
+
+    def action_new_transaction(self) -> None:
+        self._clear_form_for_new()
+        self.action_focus_form()
+
+    def action_save_transaction(self) -> None:
+        self._save_current_form()
+
+    def action_refresh_data(self) -> None:
+        self._load_lookups()
+        self._load_transactions()
+        self._set_status("Data refreshed")
+
+    def action_focus_table(self) -> None:
+        self.query_one("#transactions_table", DataTable).focus()
+        self._set_status("Focused transactions table")
+
+    def action_focus_form(self) -> None:
+        self.query_one("#date_input", Input).focus()
+        self._set_status("Focused transaction form")
+
+    def action_open_selected_transaction(self) -> None:
+        table = self.query_one("#transactions_table", DataTable)
+        if table.row_count == 0:
+            self._set_status("No transactions available")
+            return
+        table.action_select_cursor()
 
     def _parse_required_decimal(self, raw: str, field_name: str) -> Decimal | None:
         try:
@@ -343,7 +382,7 @@ class TransactionsApp(App):
             payment_method=int(payment_method_value) if payment_method_value else None,
             partner=int(partner_value) if partner_value else 0,
             in_out=str(self.query_one("#in_out_select", Select).value or "out"),
-            description=self.query_one("#description_input", Input).value.strip(),
+            description=self.query_one("#description_input", TextArea).text.strip(),
             invoice_number=self.query_one("#invoice_number_input", Input).value.strip(),
             invoice_date=self._parse_optional_date(invoice_date_raw),
             category=int(category_value) if category_value else 0,
